@@ -88,7 +88,7 @@ void sendKeyEvent(Display* display, Window root, unsigned int keycode, bool isPr
 {
     XEvent event{};
     memset(&event, 0, sizeof(event));
-    printf("Kello World!");
+
     event.xkey.display = display;
     event.xkey.window = root;
     event.xkey.root = root;
