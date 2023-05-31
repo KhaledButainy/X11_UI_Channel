@@ -1,10 +1,10 @@
-# X11 Client-Server Application (MacOS and Linux)
+# X11 Client-Server Application (Linux)
 
 This is a simple client-server application that allows the client to send X11 events (mouse movements, button presses, key presses) to the server machine.
 
 ## Prerequisites
 
-- Linux or MacOS operating system (as for now MacOS is not tested)
+- Linux operating system
 - C++ compiler (e.g., g++)
 - X11 development libraries (Linux)
 ```
@@ -12,10 +12,6 @@ sudo apt update
 ```
 ```
 sudo apt install libx11-dev libxext-dev libxtst-dev libxt-dev
-```
-- XQuartz library (MacOS)
-```
-brew install --cask xquartz
 ```
 
 ## Installation
@@ -72,11 +68,6 @@ The client will prompt you to enter the server IP address and Port. Press enter 
 - Make sure you have the necessary permissions to run the server and client programs.
 - If your client machine is not in the same network as your server machine, then you need to establish a VPN connection first.
 - If you encounter any issues related to X11 libraries or missing headers, make sure you have the X11 development libraries installed on your system.
-
-## Recommendations:
-
-- Use this appliacation between Linux based systems only as it is not yet tested on MacOS. 
-
 
 
 
