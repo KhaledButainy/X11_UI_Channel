@@ -59,9 +59,14 @@ std::string getIPv4Address()
     return ipAddress;
 }
 
-void mouse_move(Display* display, int x, int y)
+void relative_mouse_move(Display* display, int x, int y)
 {
     XTestFakeRelativeMotionEvent(display, x, y, 0);
+    XFlush(display);
+}
+
+void mouse_move(Display* display, int x, int y){
+    XTestFakeMotionEvent(display, 0, x, y, 0);
     XFlush(display);
 }
 
