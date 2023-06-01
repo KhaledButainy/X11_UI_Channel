@@ -2,6 +2,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
+#include <X11/extensions/XTest.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -58,49 +59,33 @@ std::string getIPv4Address()
     return ipAddress;
 }
 
-void sendMouseEvent(Display* display, Window root, int x, int y, int button, bool isPress)
+void mouse_move(Display* display, int x, int y)
 {
-    XEvent event{};
-    memset(&event, 0, sizeof(event));
-
-    event.xbutton.root = root;
-    event.xbutton.subwindow = None;
-    event.xbutton.x = x;
-    event.xbutton.y = y;
-    event.xbutton.button = button;
-    event.xbutton.same_screen = True;
-    event.xbutton.time = CurrentTime;
-    event.xbutton.state = isPress ? ButtonPressMask : ButtonReleaseMask;
-
-    XQueryPointer(display, root, &event.xbutton.root, &event.xbutton.window,
-                  &event.xbutton.x_root, &event.xbutton.y_root,
-                  &event.xbutton.x, &event.xbutton.y, &event.xbutton.state);
-
-    event.type = isPress ? ButtonPress : ButtonRelease;
-    event.xbutton.window = event.xbutton.subwindow;
-    event.xbutton.subwindow = None;
-
-    XSendEvent(display, PointerWindow, True, ButtonPressMask | ButtonReleaseMask, &event);
+    XTestFakeRelativeMotionEvent(display, x, y, 0);
     XFlush(display);
 }
 
-void sendKeyEvent(Display* display, Window root, unsigned int keycode, bool isPress)
+void button_press(Display* display, unsigned int button)
 {
-    XEvent event{};
-    memset(&event, 0, sizeof(event));
+    XTestFakeButtonEvent(display, button, True, 0);
+    XFlush(display);
+}
 
-    event.xkey.display = display;
-    event.xkey.window = root;
-    event.xkey.root = root;
-    event.xkey.subwindow = None;
-    event.xkey.keycode = keycode;
-    event.xkey.same_screen = True;
-    event.xkey.time = CurrentTime;
-    event.xkey.state = isPress ? 0 : KeyRelease;
+void button_release(Display* display, unsigned int button)
+{
+    XTestFakeButtonEvent(display, button, False, 0);
+    XFlush(display);
+}
 
-    event.type = isPress ? KeyPress : KeyRelease;
+void key_press(Display* display, unsigned int keycode)
+{
+    XTestFakeKeyEvent(display, keycode, True, 0);
+    XFlush(display);
+}
 
-    XSendEvent(display, root, True, KeyPressMask | KeyReleaseMask, &event);
+void key_release(Display* display, unsigned int keycode)
+{
+    XTestFakeKeyEvent(display, keycode, False, 0);
     XFlush(display);
 }
 
@@ -109,12 +94,9 @@ void handleClient(int clientSockfd)
     Display* display = XOpenDisplay(nullptr);
     Window root = DefaultRootWindow(display);
 
-    XEvent event;
-    XGrabPointer(display, root, False, PointerMotionMask | ButtonPressMask | ButtonReleaseMask | ButtonMotionMask | Button4MotionMask | Button5MotionMask | Button4Mask | Button5Mask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
-    XGrabKeyboard(display, root, False, GrabModeAsync, GrabModeAsync, CurrentTime);
-
     while (true)
     {
+        XEvent event;
         ssize_t bytesRead = recv(clientSockfd, &event, sizeof(event), 0);
         if (bytesRead <= 0)
         {
@@ -125,31 +107,33 @@ void handleClient(int clientSockfd)
         {
             case MotionNotify:
                 std::cout << "Mouse move: x=" << event.xmotion.x << ", y=" << event.xmotion.y << std::endl;
-                sendMouseEvent(display, root, event.xmotion.x, event.xmotion.y, 0, true);
+                mouse_move(display, event.xmotion.x, event.xmotion.y);
                 break;
             case ButtonPress:
                 std::cout << "Button press: " << event.xbutton.button << std::endl;
-                sendMouseEvent(display, root, event.xbutton.x, event.xbutton.y, event.xbutton.button, true);
+                button_press(display, event.xbutton.button);
                 break;
             case ButtonRelease:
                 std::cout << "Button release: " << event.xbutton.button << std::endl;
-                sendMouseEvent(display, root, event.xbutton.x, event.xbutton.y, event.xbutton.button, false);
+                button_release(display, event.xbutton.button);
                 break;
             case KeyPress:
                 std::cout << "Key press: keycode=" << event.xkey.keycode << ", state=" << event.xkey.state << std::endl;
-                sendKeyEvent(display, root, event.xkey.keycode, true);
+                key_press(display, event.xkey.keycode);
                 break;
             case KeyRelease:
                 std::cout << "Key release: keycode=" << event.xkey.keycode << ", state=" << event.xkey.state << std::endl;
-                sendKeyEvent(display, root, event.xkey.keycode, false);
+                key_release(display, event.xkey.keycode);
                 break;
             default:
                 break;
         }
+
+        // Repeat the received event to simulate the action on the server machine
+        XSendEvent(display, root, True, 0, &event);
+        XFlush(display);
     }
 
-    XUngrabPointer(display, CurrentTime);
-    XUngrabKeyboard(display, CurrentTime);
     XCloseDisplay(display);
 
     // Indicate that the client is disconnected

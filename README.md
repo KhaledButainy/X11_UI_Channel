@@ -28,7 +28,7 @@ cd <repo_directory>
 
 3. Compile the server code:
 ```
-g++ -o server server.cpp -lX11 -lpthread
+g++ -o server server.cpp -lX11 -lXtst -lpthread
 ```
 
 4. Compile the client code:
@@ -68,7 +68,3 @@ The client will prompt you to enter the server IP address and Port. Press enter 
 - Make sure you have the necessary permissions to run the server and client programs.
 - If your client machine is not in the same network as your server machine, then you need to establish a VPN connection first.
 - If you encounter any issues related to X11 libraries or missing headers, make sure you have the X11 development libraries installed on your system.
-
-
-
-
