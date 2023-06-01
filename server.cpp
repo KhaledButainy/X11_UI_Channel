@@ -65,7 +65,8 @@ void relative_mouse_move(Display* display, int x, int y)
     XFlush(display);
 }
 
-void mouse_move(Display* display, int x, int y){
+void mouse_move(Display* display, int x, int y)
+{
     XTestFakeMotionEvent(display, 0, x, y, 0);
     XFlush(display);
 }
@@ -99,6 +100,39 @@ void handleClient(int clientSockfd)
     Display* display = XOpenDisplay(nullptr);
     Window root = DefaultRootWindow(display);
 
+    // Receive the client screen size
+    int clientScreenWidth;
+    int clientScreenHeight;
+    ssize_t bytesReceived = recv(clientSockfd, &clientScreenWidth, sizeof(clientScreenWidth), 0);
+    if (bytesReceived <= 0)
+    {
+        std::cerr << "Failed to receive client screen width" << std::endl;
+        close(clientSockfd);
+        return;
+    }
+
+    bytesReceived = recv(clientSockfd, &clientScreenHeight, sizeof(clientScreenHeight), 0);
+    if (bytesReceived <= 0)
+    {
+        std::cerr << "Failed to receive client screen height" << std::endl;
+        close(clientSockfd);
+        return;
+    }
+
+    // Retrieve the server screen size
+    int serverScreenWidth = XDisplayWidth(display, DefaultScreen(display));
+    int serverScreenHeight = XDisplayHeight(display, DefaultScreen(display));
+
+    // Calculate the ratio for scaling mouse movements
+    double widthRatio = static_cast<double>(serverScreenWidth) / static_cast<double>(clientScreenWidth);
+    double heightRatio = static_cast<double>(serverScreenHeight) / static_cast<double>(clientScreenHeight);
+
+    std::cout << "Client screen size: " << clientScreenWidth << "x" << clientScreenHeight << std::endl;
+    std::cout << "Server screen size: " << serverScreenWidth << "x" << serverScreenHeight << std::endl;
+    std::cout << "Mouse movement ratio: " << widthRatio << ":" << heightRatio << std::endl;
+
+    int scaledMouseX, scaledMouseY; 
+
     while (true)
     {
         XEvent event;
@@ -111,8 +145,12 @@ void handleClient(int clientSockfd)
         switch (event.type)
         {
             case MotionNotify:
-                std::cout << "Mouse move: x=" << event.xmotion.x << ", y=" << event.xmotion.y << std::endl;
-                mouse_move(display, event.xmotion.x, event.xmotion.y);
+                // Scale the mouse coordinates based on the client and server screen sizes
+                scaledMouseX = event.xmotion.x * widthRatio;
+                scaledMouseY = event.xmotion.y * heightRatio;
+
+                std::cout << "Mouse move: x=" << scaledMouseX << ", y=" << scaledMouseY << std::endl;
+                mouse_move(display, scaledMouseX, scaledMouseY);
                 break;
             case ButtonPress:
                 std::cout << "Button press: " << event.xbutton.button << std::endl;

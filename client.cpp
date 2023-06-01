@@ -96,6 +96,27 @@ int main()
         return 1;
     }
 
+    // Retrieve the client screen size
+    int screenWidth = XDisplayWidth(display, DefaultScreen(display));
+    int screenHeight = XDisplayHeight(display, DefaultScreen(display));
+
+    // Send the client screen size to the server
+    ssize_t bytesSent = send(sockfd, &screenWidth, sizeof(screenWidth), 0);
+    if (bytesSent <= 0)
+    {
+        std::cerr << "Failed to send screen width to the server" << std::endl;
+        close(sockfd);
+        return 1;
+    }
+
+    bytesSent = send(sockfd, &screenHeight, sizeof(screenHeight), 0);
+    if (bytesSent <= 0)
+    {
+        std::cerr << "Failed to send screen height to the server" << std::endl;
+        close(sockfd);
+        return 1;
+    }
+
     XGrabPointer(display, root, False, PointerMotionMask | ButtonPressMask | ButtonReleaseMask | ButtonMotionMask | Button4MotionMask | Button5MotionMask | Button4Mask | Button5Mask, GrabModeAsync, GrabModeAsync, None, None, CurrentTime);
     XGrabKeyboard(display, root, False, GrabModeAsync, GrabModeAsync, CurrentTime);
 
